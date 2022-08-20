@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import Counter from './components/Counter.jsx';
 import PostForm from './components/PostForm.jsx';
 import PostFilter from './components/PostFilter.jsx';
@@ -9,41 +9,40 @@ import MyInput from './components/UI/input/MyInput.jsx';
 import './styles/app.css'
 import MyModal from './components/UI/MyModal/MyModal.jsx';
 import MyButton from './components/UI/button/MyButton.jsx';
+import { usePosts } from './components/hooks/usePosts.js';
+import axios from 'axios';
+import PostService from './API/PostService.js';
+import Loader from './components/UI/Loader/Loader.jsx';
+import { useFetching } from './components/hooks/useFetching.js';
 function App() {
 
 const [posts, setPosts] = useState([
-  {id: 1, title: '1JavaScript', body: '3Description'},
-  {id: 2, title: '2JavaScript22', body: '2Description'},
-  {id: 3, title: '3JavaScript33', body: '1Description'}
+  // {id: 1, title: '1JavaScript', body: '3Description'},
+  // {id: 2, title: '2JavaScript22', body: '2Description'},
+  // {id: 3, title: '3JavaScript33', body: '1Description'}
 ]); 
-
 
 // объединяем в стейте метод сортировки и поисковый запрос
 const [filter, setFilter] = useState({sort: '', query: ''})
 
 //стейт видимости модального окна
 const [modalState, setModalState] = useState(false)
+const sortedFilteredPosts = usePosts(posts, filter.sort, filter.query)
+const [fetchPosts, isPostsLoading, postError] = useFetching(async () => {
+  const posts = await PostService.getAll();
+  setPosts(posts);
+})
 
-// const sortedPosts = getSortedPosts()
-const sortedPosts = useMemo(() => {
-  console.log('отработала сортировка getSortedPosts')
-  // console.log('selectedSort :', selectedSort);
-
-  if (filter.sort) {
-    return [...posts].sort((a, b) => a[filter.sort].localeCompare(b[filter.sort]) )
-  }
-  return posts;
-}, [filter.sort, posts])
-
-const sortedFilteredPosts = useMemo(() => {
-  return sortedPosts.filter(post => post.title.toLowerCase().includes(filter.query.toLowerCase()))
-}, [filter.query, sortedPosts])
-
+useEffect(() => {
+fetchPosts()
+}, [])
 
 const createPost = (newPost) => {
   setPosts([...posts, newPost])
   setModalState(false)
 }
+
+
 
 // получаем post из дочернего компонента
   const removePost = (post) => {
@@ -51,7 +50,6 @@ const createPost = (newPost) => {
   }
 
  
-
   return (
     <div className="App">
 
@@ -68,12 +66,16 @@ const createPost = (newPost) => {
        filter={filter} 
        setFilter={setFilter}
        />
+      {postError && <h1>Произошла ошибка загрузки {postError}</h1>}
+      {isPostsLoading
+      ? <div style={{display: 'flex', justifyContent: 'center', marginTop: '50px'}}><Loader /></div> 
+        : <PostList 
+        remove={removePost}
+        posts={sortedFilteredPosts} 
+        title="Список постов про JS"
+        />
+      }
       
-      <PostList 
-       remove={removePost}
-       posts={sortedFilteredPosts} 
-       title="Список постов про JS"
-       />
       
 
     </div>
