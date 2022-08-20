@@ -14,6 +14,7 @@ import axios from 'axios';
 import PostService from './API/PostService.js';
 import Loader from './components/UI/Loader/Loader.jsx';
 import { useFetching } from './components/hooks/useFetching.js';
+import { getPagesArray, getPagesCount } from './utils/pages.js';
 function App() {
 
 const [posts, setPosts] = useState([
@@ -27,10 +28,18 @@ const [filter, setFilter] = useState({sort: '', query: ''})
 
 //стейт видимости модального окна
 const [modalState, setModalState] = useState(false)
+const [totalPages, setTotalPages] = useState(0)
+const [limit, setLimit] = useState(10)
+const [page, setPage] = useState(1)
 const sortedFilteredPosts = usePosts(posts, filter.sort, filter.query)
+let pagesArray = getPagesArray(totalPages)
+// console.log('pagesArray :', pagesArray);
+
 const [fetchPosts, isPostsLoading, postError] = useFetching(async () => {
-  const posts = await PostService.getAll();
-  setPosts(posts);
+  const response = await PostService.getAll(limit, page);
+  setPosts(response.data); 
+  const totalCount = response.headers['x-total-count']
+  setTotalPages(getPagesCount(totalCount, limit))
 })
 
 useEffect(() => {
@@ -75,6 +84,14 @@ const createPost = (newPost) => {
         title="Список постов про JS"
         />
       }
+      <div style={{marginTop: '5px', marginBottom: '5px'}}>
+      {pagesArray.map (p => 
+        <button className={page === p ? 'page page__current' : 'page'} style={{marginRight: '5px'}}>
+          {p}
+          </button>
+      )}
+      </div>
+     
       
       
 
